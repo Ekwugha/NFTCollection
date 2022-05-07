@@ -32,7 +32,13 @@ contract CryptoDevs is ERC721Enumerable, Ownable {
     //  _price is the price of one Crypto Dev NFT
     uint256 public _price = 0.01 ether; 
 
+    // _paused is used to pause the contract in case of an emergency
+    bool public _paused;
 
+    modifier onlyWhenNotPaused {
+        require(!_paused, "Contract currently paused");
+        _;
+    }
 
 
 
@@ -40,8 +46,8 @@ contract CryptoDevs is ERC721Enumerable, Ownable {
     // * name in this case is `Crypto Devs` and symbol is `CD`.
     // * Constructor for Crypto Devs takes in the baseURI to set _baseTokenURI for the collection.
     // * It also initializes an instance of whitelist interface.
-    constructor(string memory _baseURI, address whitelistContract) ERC721("Crypto Devs", "CD") {
-        _baseTokenURI = _baseURI;
+    constructor(string memory baseURI, address whitelistContract) ERC721("Crypto Devs", "CD") {
+        _baseTokenURI = baseURI;
         // interface created and linked with the address of my whitelist contract so that the Iwhitelist conracts knows the address its getting data from
         whitelist = IWhitelist(whitelistContract);
     }
@@ -55,26 +61,26 @@ contract CryptoDevs is ERC721Enumerable, Ownable {
     }
 
     // presaleMint allows a user to mint one NFT per transaction during the presale.
-    function presaleMint() public payable {
+    function presaleMint() public payable onlyWhenNotPaused {
         require(presaleStarted && block.timestamp < presaleEnded, "Presale ended");
-        require(whitelist.whitelistAddress(msg.sender), "You are not in the whitelist");
+        require(whitelist.whitelistedAddresses(msg.sender), "You are not in the whitelist");
         require(tokenIds < maxTokenIds, "Exceeded the limit");
         require(msg.value >= _price, "Ether sent is not correct");
 
         tokenIds += 1;
 
-        _safeMint(msg.sender, tokenIds)
+        _safeMint(msg.sender, tokenIds);
     }
 
     // mint allows a user to mint 1 NFT per transaction after the presale has ended.
-    function mint() public payable {
+    function mint() public payable onlyWhenNotPaused {
         require(presaleStarted && block.timestamp >= presaleEnded, "Presale has not ended");
         require(tokenIds < maxTokenIds, "Exceeded the limit");
         require(msg.value >= _price, "Ether sent is not correct");
 
         tokenIds += 1;
 
-        _safeMint(msg.sender, tokenIds)
+        _safeMint(msg.sender, tokenIds);
     }
 
 
@@ -83,6 +89,15 @@ contract CryptoDevs is ERC721Enumerable, Ownable {
     function _baseURI() internal view override returns (string memory) {
         return _baseTokenURI;
     }
+
+
+
+    // setPaused makes the contract paused or unpaused
+    function setPaused(bool val) public onlyOwner {
+        _paused = val;
+    }
+
+
 
 
     // withdraw sends all the ether in the contract
