@@ -1,11 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import Web3Modal from "web3modal";
-import { providers } from 'ethers';
+import { providers, Contract } from 'ethers';
 import Head from "next/head";
 import styles from "../styles/Home.module.css";
+import { NFT_CONTRACT_ABI, NFT_CONTRACT_ADDRESS } from '../constants';
 
 
 export default function Home() {
+
+  // checks if the currently connected MetaMask wallet is the owner of the contract
+  const [isOwner, setIsOwner] = useState(false);
+
+  // presaleStarted keeps track of whether the presale has started or not
+  const [presaleStarted, setPresaleStarted] = useState(false);
+
+  // presaleEnded keeps track of whether the presale ended
+  const [presaleEnded, setPresaleEnded] = useState(false);
 
   // walletConnected keep track of whether the user's wallet is connected or not
   const [walletConnected, setWalletConnected] = useState(false);
@@ -13,10 +23,94 @@ export default function Home() {
   // Create a reference to the Web3 Modal (used for connecting to Metamask) which persists as long as the page is open
   const web3ModalRef = useRef();
 
-  const connectWallet = async() => {
-    await getProviderOrSigner();
-    setWalletConnected(true);
+  
+  const getOwner = async () => {
+    try {
+      const signer = await getProviderOrSigner(true);
+      
 
+      const nftContract = new Contract( NFT_CONTRACT_ADDRESS, NFT_CONTRACT_ABI, signer );   
+
+      const owner = await nftContract.owner();
+      const userAddress = await signer.getAddress();
+
+      if (owner.toLowerCase() === userAddress.toLowerCase()) {
+        setIsOwner(true);
+      }
+
+    } catch (error) {
+      console.error(error);
+    }
+  }
+  
+
+  const startPresale = async () => {
+  try {
+    // We need a Signer here since this is a 'write' transaction.
+    const signer = await getProviderOrSigner(true);
+
+    // Create a new instance of the Contract with a Signer, which allows
+    // update methods
+    const nftContract = new Contract( NFT_CONTRACT_ADDRESS, NFT_CONTRACT_ABI, signer );
+
+    const txn = await nftContract.startPresale();
+    await txn.wait();
+
+    setPresaleStarted(true);
+  } catch (error) {
+    console.error(error);
+  }
+  }
+
+
+  const checkIfPresaleStarted = async () => {
+    try {
+      // Get the provider from web3Modal, which in our case is MetaMask
+      // No need for the Signer here, as we are only reading state from the blockchain
+      const provider = await getProviderOrSigner();
+
+      // We connect to the Contract using a Provider, so we will only
+      // have read-only access to the Contract. Get instance of the contract
+      const nftContract = new Contract(NFT_CONTRACT_ADDRESS, NFT_CONTRACT_ABI, provider);
+      // call the presaleStarted from the contract
+      const isPresaleStarted = await nftContract.presaleStarted();
+      setPresaleStarted(isPresaleStarted);
+
+      return isPresaleStarted;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
+
+  const checkIfPresaleEnded = async () => {
+    try {
+      const provider = await getProviderOrSigner();
+
+      const nftContract = new Contract(NFT_CONTRACT_ADDRESS, NFT_CONTRACT_ABI, provider);
+
+      // This will return a big number because presaleEnded is uint256
+      // This will also return a timestamp in seconds
+      const presaleEndTime = await nftContract.presaleEnded();
+      // Date.now()/1000 returns the current time in seconds
+      const currentTimeInSeconds = Date.now() / 1000;
+      // _presaleEnded is a Big Number, so we are using the lt(less than function) instead of `<`
+      // We compare if the _presaleEnded timestamp is less than the current time
+      // which means presale has ended
+      const hasPresaleEnded = presaleEndTime.lt(Math.floor(currentTimeInSeconds));
+      setPresaleEnded(hasPresaleEnded);
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  const connectWallet = async() => {
+    try {
+      await getProviderOrSigner();
+      setWalletConnected(true);
+    } catch (error) {
+      console.error(error);
+    }
   }
 
 
@@ -46,6 +140,15 @@ export default function Home() {
     return web3Provider;
   }
 
+  const onPageLoad = async () => {
+    await connectWallet();
+    await getOwner();
+    const presaleStarted = await checkIfPresaleStarted();
+    if (presaleStarted) {
+      await checkIfPresaleEnded();
+    }
+  }
+
   useEffect(() => {
     // if wallet is not connected, create a new instance of Web3Modal and connect the MetaMask wallet
     if(!walletConnected) {
@@ -57,9 +160,68 @@ export default function Home() {
         disableInjectedProvider: false,
       });
 
-      connectWallet();
+      onPageLoad();
+      
     }
   }, [])
+
+
+  function renderBody() {
+    if (!walletConnected) {
+      return (
+        <button onClick={connectWallet} className={styles.button}> 
+          Connect Wallet
+        </button>
+      )
+    }
+
+    // If connected user is the owner, and presale hasnt started yet, allow them to start the presale
+    if (isOwner && !presaleStarted) {
+      return (
+        <button onClick={startPresale} className={styles.button}>
+          Start Presale
+        </button>
+      )
+    }
+
+    // If connected user is not the owner but presale hasn't started yet, tell them that
+    if (!presaleStarted) {
+      return (
+        <div>
+          <div className={styles.description}>Presale hasn't started yet. Come back later!</div>
+        </div>
+      );
+    }
+
+    // If presale started, but hasn't ended yet, allow for minting during the presale period
+    if (presaleStarted && !presaleEnded) {
+      return (
+        <div>
+          <div className={styles.description}>
+            Presale has started!!! If your address is whitelisted, Mint a
+            Crypto Dev 🥳
+          </div>
+          <button className={styles.button} >
+            Presale Mint 🚀
+          </button>
+        </div>
+      );
+    }
+
+    // If presale started and has ended, its time for public minting
+    if (presaleEnded) {
+      return (
+        <div>
+          <div className={styles.description}>
+            Presale has ended!!! You can mint a CryptoDev in public mint, if any still remains.
+          </div>
+          <button className={styles.button} onClick={publicMint}>
+            Public Mint 🚀
+          </button>
+        </div>
+      )
+    }
+  }
 
   return (
     <div>
@@ -68,11 +230,7 @@ export default function Home() {
       </Head>
 
       <div className={styles.main}>
-        {walletConnected ? null : (
-          <button onClick={connectWallet} className={styles.button}> 
-          Connect Wallet
-         </button>
-        )}
+        {renderBody()}
       </div>
     </div>
   )

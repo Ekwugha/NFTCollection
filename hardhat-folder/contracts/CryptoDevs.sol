@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-// tihs is gonna help us create the contract for the non-fungible token
+// this is gonna help us create the contract for the non-fungible token
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 // this is gonna help us in the ownership of the contract
