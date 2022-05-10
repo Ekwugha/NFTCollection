@@ -19,4 +19,9 @@ So in this repo, a NFT Collection is ceated using ERC-721 standard.
 
 
 Link to the website in other to mint a CryptoDev NFT>>>>>> https://nft-collection-alpha-one.vercel.app/
+
+
+
+
+
 Or you can join the whitelist in other to get a presale>>>> https://whitelist-d-ml231zkqa-ekwugha.vercel.app/
