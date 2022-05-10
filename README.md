@@ -25,3 +25,7 @@ Link to the website in other to mint a CryptoDev NFT>>>>>> https://nft-collectio
 
 
 Or you can join the whitelist in other to get a presale>>>> https://whitelist-d-ml231zkqa-ekwugha.vercel.app/
+
+
+
+Can also go to my opensea testnet account to get anyone listed>>>>>> https://testnets.opensea.io/account
