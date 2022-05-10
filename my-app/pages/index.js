@@ -283,7 +283,7 @@ export default function Home() {
     if (!presaleStarted) {
       return (
         <div>
-          <div className={styles.description}>Presale hasn't started yet. Come back later!</div>
+          <div className={styles.description}>Presale has not started yet. Come back later!</div>
         </div>
       );
     }
