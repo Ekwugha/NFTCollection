@@ -15,3 +15,17 @@ it is a standard interface for Non-Fungible tokens; it has a set of rules which 
 
 
 So in this repo, a NFT Collection is ceated using ERC-721 standard.
+
+
+
+Link to the website in other to mint a CryptoDev NFT>>>>>> https://nft-collection-alpha-one.vercel.app/
+
+
+
+
+
+Or you can join the whitelist in other to get a presale>>>> https://whitelist-d-ml231zkqa-ekwugha.vercel.app/
+
+
+
+Can also go to my opensea testnet account to get anyone listed>>>>>> https://testnets.opensea.io/account
